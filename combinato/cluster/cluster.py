@@ -15,6 +15,11 @@ logger = logging.getLogger(__name__)
 # pylint:   disable=E1101
 from .. import SortingManager, SessionManager, options
 
+# This module is only used from the command line and writes its figures to
+# disk. The default backend on macOS would load Cocoa into every process, which
+# is not needed here and makes fork() unsafe ("objc ... Crashing instead").
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as mpl
 
 from .wave_features import wavelet_features
@@ -242,6 +247,13 @@ def sort_helper(args):
     """
     # logger.debug('sort_helper called: %s', args)    # Log function call
 
+    global SEED
+    if len(args) > 3:
+        # Workers start with 'spawn' on macOS and Windows: they do not inherit
+        # SEED, so the seed travels with each job. Without this every worker
+        # would generate its own random seed and silently ignore --rng.
+        SEED = args[3]
+
     main(args[0], args[2], args[1], options['overwrite'])
 
 
@@ -345,4 +357,4 @@ def argument_parser():
 
     else:
         pool = Pool(n_cores)
-        pool.map(sort_helper, joblist)
+        pool.map(sort_helper, [tuple(job) + (SEED,) for job in joblist])

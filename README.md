@@ -24,6 +24,41 @@ Please walk through our instructive Tutorial.
 - [FAQ](../../wiki/FAQ)
 - [Details](../../wiki/Details)
 
+## Standalone unit waveform densities
+
+`css-plot-units` saves one 2 × 2 inch SVG per group, containing the blue
+waveform density, black mean, and dark gray mean ± one population standard
+deviation. It omits cumulative spike counts, duration text, axes, and class
+panels. Every spike in the group's classes contributes to the density.
+
+From a recording directory containing channel folders, run:
+
+```sh
+css-plot-units
+```
+
+By default, this scans all `data_*.h5` files in the current directory and its
+immediate channel folders, discovers all grouped sortings (`*/sort_cat.h5`),
+and exports single- and multi-unit groups for both polarities. Inputs are
+opened read-only. Images go to `overview/units/`, named with channel, polarity,
+sorting label, and group ID, for example
+`CSC129_neg_sort_neg_simple_001.svg`.
+
+Select one channel, polarity, sorting, and group:
+
+```sh
+css-plot-units --channel CSC129 --polarity neg --label sort_neg_simple --group-id 1
+```
+
+Explicit group IDs can also select unassigned or artifact groups. Channel and
+group filters accept multiple values. Use `--root /path/to/recording` to scan
+another recording, `--files CSC129/data_CSC129.h5` for explicit data files,
+`--output /path/to/plots` for another destination, or `--dpi 600` for a higher
+resolution density layer. `--neg` is an alias for `--polarity neg`. No matching nonempty
+groups produces a message and a nonzero exit status. Repeated exports replace
+images with the same filename. The existing singular `css-plot-unit` quality
+report remains available.
+
 ## Citing Combinato 
 
 When using Combinato in your work, please cite [this paper](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0166598):

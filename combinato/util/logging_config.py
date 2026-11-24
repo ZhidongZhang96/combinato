@@ -7,6 +7,7 @@ local_options.
 import datetime
 import logging
 from logging.handlers import RotatingFileHandler
+import multiprocessing
 import os
 import warnings
 
@@ -160,8 +161,15 @@ def configure_logging(options):
         _configure_subsystem_handlers(level, formatter, log_dir, mode,
                                       max_bytes, backup_count)
 
-    root.debug('Logging configured: level=%s, dir=%s',
-               level_name, log_dir)
+    # Only report from the process that started the program.
+    # With the 'spawn' start method (the default on macOS) every child process
+    # re-imports the combinato package and therefore runs this function
+    # again; logging here unconditionally would print one line per child.
+    # The children still get their handlers configured, they just stay
+    # quiet about it.
+    if multiprocessing.current_process().name == 'MainProcess':
+        root.debug('Logging configured: level=%s, dir=%s',
+                   level_name, log_dir)
 
 
 def _configure_subsystem_handlers(level, formatter, log_dir, mode,

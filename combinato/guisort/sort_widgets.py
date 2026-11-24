@@ -486,22 +486,31 @@ class AllGroupsFigure(MplCanvas):
         self.draw()
 
     def mark(self, groupName, index):
+        """Overlay a cluster mean waveform, or clear the current overlay.
+
+        Args:
+            groupName: Source group name; ignored when index is None.
+            index: Cluster row, or None to remove the overlay and distances.
+        """
         delfunc(self.texts)
 
-        data = self.session.groupsByName[groupName].\
-            clusters[index].meanspike
+        if index is not None:
+            data = self.session.groupsByName[groupName].\
+                clusters[index].meanspike
 
         for ax in self.fig.get_axes():
             lines = ax.get_lines()
             name = ax.get_label()
             group = self.session.groupsByName[name]
-            meandata = np.array(group.meandata).mean(0)
-            dist = spikeDist(meandata, data)
             length = len(group.clusters)
             if len(lines) > length:
                 lines[-1].remove()
                 if len(lines) > length:
                     del lines[-1]
+            if index is None:
+                continue
+            meandata = np.array(group.meandata).mean(0)
+            dist = spikeDist(meandata, data)
             line = mpl.Line2D(self.x, data, color='r')
             ax.add_line(line)
             self.texts.append(ax.text(.05, .05, format(dist, '.2f'),

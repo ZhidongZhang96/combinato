@@ -28,9 +28,12 @@ def spike_heatmap(ax, spikes, x=None, log=False):
     """
     spMin = spikes.min()
     spMax = spikes.max()
-    spBins = np.linspace(spMin, spMax, int(round(2*spMax)))
-    if spBins.shape[0] < 3:
-        spBins = np.linspace(spMin, spMax, 3)
+    # Negative-only and constant waveforms also occur in extracted groups.
+    n_bins = max(3, int(round(2 * max(abs(spMin), abs(spMax)))))
+    if spMin == spMax:
+        spBins = np.linspace(spMin - .5, spMax + .5, n_bins)
+    else:
+        spBins = np.linspace(spMin, spMax, n_bins)
 
     nSamp = spikes.shape[1]
 
@@ -47,7 +50,7 @@ def spike_heatmap(ax, spikes, x=None, log=False):
             imdata[:, col] = data
 
     ydiff = (spBins[1] - spBins[0])/2.
-    extent = [x[0], x[-1], spMin-ydiff, spMax-ydiff]
+    extent = [x[0], x[-1], spBins[0]-ydiff, spBins[-1]-ydiff]
 
     ax.imshow(imdata,
               cmap=cmap,

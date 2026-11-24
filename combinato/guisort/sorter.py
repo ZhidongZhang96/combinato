@@ -11,7 +11,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QEvent, Qt
 from PyQt5.QtWidgets import (QMainWindow, QApplication, QListView,
         QMessageBox, QFileDialog)
 
@@ -60,6 +60,7 @@ class SpikeSorter(QMainWindow, Ui_MainWindow):
         view.setResizeMode(QListView.Adjust)
         view.setItemDelegate(ClusterDelegate(self))
         view.setStyleSheet(stylesheet)
+        view.viewport().installEventFilter(self)
         view.addAction(self.actionMakeArtifact)
         view.addAction(self.actionMarkCluster)
 
@@ -115,6 +116,26 @@ class SpikeSorter(QMainWindow, Ui_MainWindow):
             if options['RunGuiWithRaster']:
                 self.tabWidget.setTabEnabled(3, True)
                 self.init_raster()
+
+    def eventFilter(self, obj, event):
+        """Deselect a cluster when its selected thumbnail is clicked again.
+
+        Args:
+            obj: Widget receiving the event.
+            event: Qt input event.
+
+        Returns:
+            bool: Whether the event has been handled.
+        """
+        if (obj is self.listView.viewport() and
+                event.type() in (QEvent.MouseButtonPress,
+                                 QEvent.MouseButtonDblClick) and
+                event.button() == Qt.LeftButton):
+            index = self.listView.indexAt(event.pos())
+            if index.isValid() and self.listView.selectionModel().isSelected(index):
+                self.listView.clearSelection()
+                return True
+        return super(SpikeSorter, self).eventFilter(obj, event)
 
     def init_raster(self):
         import pandas as pd
@@ -585,6 +606,10 @@ class SpikeSorter(QMainWindow, Ui_MainWindow):
         name = self.tabWidget.currentWidget().objectName()
         indexes = self.listView.selectedIndexes()
         if len(indexes) == 0:
+            if name == 'oneGroupTab':
+                self.groupOverviewFigure.mark(None, [])
+            elif name == 'allGroupsTab':
+                self.allGroupsFigure.mark(None, None)
             return
         index = indexes[0].row()
 
@@ -626,7 +651,7 @@ class SpikeSorter(QMainWindow, Ui_MainWindow):
             return
         model = self.backend.sessions.groupsByName[index]
         self.listView.setModel(model)
-        self.listView.selectionModel().currentChanged.\
+        self.listView.selectionModel().selectionChanged.\
             connect(self.on_actionMarkCluster_triggered)
         self.setRadioButtons(index)
         self.updateActiveTab()
@@ -774,6 +799,13 @@ class SpikeSorter(QMainWindow, Ui_MainWindow):
             self.allGroupsFigureDirty = False
         else:
             self.allGroupsFigure.updateInfo(index)
+
+        # Select the first cluster after the comparison axes are up-to-date.
+        first_index = self.listView.model().index(0, 0)
+        if first_index in self.listView.selectedIndexes():
+            self.on_actionMarkCluster_triggered()
+        else:
+            self.listView.setCurrentIndex(first_index)
 
     def actionTidyGroups_triggered(self):
         if self.backend is None:

@@ -3,3 +3,5 @@ combinato/options.py
 *.swp
 .DS_Store
 .idea
+logs/*
+.vscode/
